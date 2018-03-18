@@ -1,0 +1,26 @@
+{
+  "name": "jst",
+  "version": "0.0.1",
+  "description": "Use JS templates strings for file tempates",
+  "main": "jst.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "devDependencies": {
+    "mocha": "*",
+    "chai": "*"
+  },
+  "repository": "HookyQR/jst",
+  "keywords": [
+    "jst",
+    "template",
+    "html",
+    "partial"
+  ],
+  "author": "Hooky <hooky@qrmaster.co.nz> (https://github.com/HookyQR)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/hookyqr/jst/issues"
+  },
+  "homepage": "https://github.com/hookyqr/jst#readme"
+}
