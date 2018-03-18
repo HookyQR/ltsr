@@ -25,7 +25,7 @@ Use Javascript Literal Template String syntax for file templates.
 <div>Hello Hooky of Earth</div>
 <div>Hello TJ of Earth</div>
 ```
-#### Called with `renderMap('partial', {name: 'place'} {Hooky: 'Earth', TJ: 'Earth', Marvin: 'Mars'})`:
+#### Called with `renderMap('partial', {name: 'place'}, {Hooky: 'Earth', TJ: 'Earth', Marvin: 'Mars'})`:
 ```html
 <div>Hello Hooky of Earth</div>
 <div>Hello TJ of Earth</div>
