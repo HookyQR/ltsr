@@ -1,8 +1,8 @@
 {
-  "name": "jst",
+  "name": "ltsr",
   "version": "0.0.1",
-  "description": "Use JS templates strings for file tempates",
-  "main": "jst.js",
+  "description": "Literal Template String Render - Use JS literal templates strings for file tempates",
+  "main": "ltsr.js",
   "scripts": {
     "test": "mocha"
   },
@@ -10,17 +10,19 @@
     "mocha": "*",
     "chai": "*"
   },
-  "repository": "HookyQR/jst",
+  "repository": "HookyQR/ltsr",
   "keywords": [
-    "jst",
+    "ltsr",
+    "literal template string render",
     "template",
+    "render",
     "html",
     "partial"
   ],
   "author": "Hooky <hooky@qrmaster.co.nz> (https://github.com/HookyQR)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hookyqr/jst/issues"
+    "url": "https://github.com/hookyqr/ltsr/issues"
   },
-  "homepage": "https://github.com/hookyqr/jst#readme"
+  "homepage": "https://github.com/hookyqr/ltsr#readme"
 }

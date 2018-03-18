@@ -7,7 +7,7 @@ const storedFunctions = new Map();
 const makeFunction = (file, args) => {
   let base = path.join(root, file);
   if (path.relative(root, base).startsWith('..')) throw new Error(`Attempt to load template (${file}) which falls outside of root (${root})`);
-  let str = readFile(`${base}.jst`, 'utf8');
+  let str = readFile(`${base}.lt`, 'utf8');
   return new Function(args, `return \`${str}\``);
 }
 

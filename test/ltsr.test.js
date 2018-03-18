@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 
-const { render, renderSet, renderMap, renderRoot } = require('../jst');
-describe('jst', () => {
+const { render, renderSet, renderMap, renderRoot } = require('../ltsr');
+describe('ltsr', () => {
   it('fails with a path out of root', () =>
     expect(() => render('../../nothing'))
     .to

@@ -1,8 +1,8 @@
-# JST
+# LTSR
 
-**Javascript Template String - Template file**
+**Literal Template String Render**
 
-Use Javascript Template string syntax for file templates.
+Use Javascript Literal Template String syntax for file templates.
 
 `renderRoot(folder)` : set the root directory for template loading
 
@@ -12,7 +12,7 @@ Use Javascript Template string syntax for file templates.
 
 `renderSet(file, mapKeyNames = {key: 'value'}, map = {}, locals = {})` : like `renderSet` except the content of `map` is iterated and the keys sent as the single `key` name from `mapKeyNames`, and the values sent as `value` from the same.
 
-### Example: `partial.jst`
+### Example: `partial.lt`
 ```html
 <div>Hello ${name} of ${place}</div>
 ```
@@ -33,7 +33,7 @@ Use Javascript Template string syntax for file templates.
 ```
 ## partials at depth
 The three render methods are available to the templates, enabling partial renders:
-### With `outer.jst`
+### With `outer.lt`
 ```html
 <html>
   <body>
