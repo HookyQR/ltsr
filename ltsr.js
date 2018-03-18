@@ -102,37 +102,3 @@ module.exports = {
   renderMap,
   renderRoot
 }
-
-// class S extends String {
-//   constructor(v) {
-//     super(v);
-//     this.extra = "a";
-//   }
-//   fn() {
-//     return this.extra + "BCD";
-//   }
-//   static sFn() {}
-// }
-
-// class T extends S {}
-// let t = new S("x");
-// Object.defineProperty(t,'other', {
-// 	get:
-// 	function () {
-// 		return function() {return t.fn() + "HELLO"};
-// 	}
-// })
-// this.extra = "NOT A "
-// t = {
-//   other: () => "OTHER",
-//   fn: () => "FN"
-// }
-
-// console.log(render('index', { name: ['Hooky', 'Bubba'], test: {other: "this is it"} }));
-// console.log(render('index', { test: t, name: ['TJ', 'Bubba'] }));
-// let t2 = new T('AVC');
-// t2.other = () => "t2"
-// console.log(render('index', { test: t2, name: ['TJ', 'Bubba'] }));
-// console.log("====================")
-// console.log(renderSet('index', { test: new Set([t, t2]) }, { name: ['TJ', 'Bubba'] }));
-// console.log(renderMap('index', { name: 'test' }, { TJ: t, Hooky: t2 }));
