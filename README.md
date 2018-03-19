@@ -15,6 +15,8 @@ Use Javascript Literal Template String syntax for file templates.
   * `keyName = 'key'`: Otherwise.
   * `valueName = 'value'`
 
+`render.raw(file)` may be used to render the template without interpolation, useful for including javascript files which have string templates in them.
+
 ### Single render:
 `render(file, { locals: {} })` : render template at `root/file` making the keys in `locals` available as arguments to the template
 
