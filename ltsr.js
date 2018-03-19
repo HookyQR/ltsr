@@ -6,7 +6,8 @@ const storedFunctions = new Map();
 
 const makeFunction = (file, args) => {
   let base = path.join(root, file);
-  if (path.relative(root, base).startsWith('..')) throw new Error(`Attempt to load template (${file}) which falls outside of root (${root})`);
+  if (path.relative(root, base)
+    .startsWith('..')) throw new Error(`Attempt to load template (${file}) which falls outside of root (${root})`);
   let str = readFile(`${base}.lt`, 'utf8');
   return new Function(args, `return \`${str}\``);
 }
@@ -35,8 +36,8 @@ const mapProperties = (object, target = object) => {
   if (proto.constructor === Object) { return result; }
   return Object.assign(mapProperties(proto, target), result);
 }
-const render = (name, attrs = {}) => {
-  let argValues = mapProperties(attrs);
+const innerRender = (name, locals) => {
+  let argValues = mapProperties(locals);
   let args = Object.keys(argValues)
     .sort();
   let values = args.map(a => argValues[a]);
@@ -60,45 +61,69 @@ const render = (name, attrs = {}) => {
     }
     throw (e);
   }
+}
+
+const innerRenderCollectionPart = (name, locals, collected) => {
+  return innerRender(name, Object.assign({}, locals, collected));
+}
+
+const renderMap = (name, locals, collection, keyName, valueName) => {
+  const output = []
+  for (let [key, value] of collection) {
+    output.push(
+      innerRenderCollectionPart(name, locals, {
+        [keyName]: key,
+        [valueName]: value
+      }));
+  }
+  return output.join('');
+}
+const renderSet = (name, locals, collection, keyName, valueName) => {
+  const output = []
+  let i = 0;
+  for (let value of collection) {
+    output.push(
+      innerRenderCollectionPart(name, locals, {
+        [keyName]: i++,
+        [valueName]: value
+      }));
+  }
+  return output.join('');
+}
+const renderObject = (name, locals, collection, keyName, valueName) =>
+  Object.keys(collection)
+  .map(key =>
+    innerRenderCollectionPart(name, locals, {
+      [keyName]: key,
+      [valueName]: collection[key]
+    }))
+  .join('');
+
+const render = (
+  name, {
+    locals = {},
+    collection = null,
+    keyName = (collection instanceof Array || collection instanceof Set) ? 'index' : 'key',
+    valueName = 'value'
+  } = {}) => {
+  if (!collection) return innerRender(name, locals);
+  if ('string' !== typeof keyName || 'string' !== typeof valueName)
+    throw new Error('keyName and valueName must be strings');
+  if (collection instanceof Array || collection instanceof Set)
+    return renderSet(name, locals, collection, keyName, valueName);
+  else if (collection instanceof Map)
+    return renderMap(name, locals, collection, keyName, valueName);
+  else if (Object.keys(collection)
+    .length)
+    return renderObject(name, locals, collection, keyName, valueName);
+  else
+    throw new Error(`Don't know how to render with collection of type ${collection.constructor.name}`);
 };
 
-const renderSet = (name, set = {}, attrs = {}) => {
-  let key = Object.keys(set);
-  if (key.length > 1) throw new Error("set must be an object with a single key value pair");
-  key = key[0];
-  if (set[key] instanceof Array || set[key] instanceof Set) {
-    let result = "";
-    for (const val of set[key]) {
-      result += render(name, Object.assign({}, attrs, {
-        [key]: val
-      }));
-    }
-    return result;
-  }
-  throw new Error("value of set must be an Array or a Set");
-}
-
-const renderMap = (name, mapNames = { key: 'value' }, map = {}, attrs = {}) => {
-  let key = Object.keys(mapNames);
-  if (key.length > 1) throw new Error("mapNames should be an object with a single key value pair");
-  key = key[0];
-  let value = mapNames[key];
-  if ('string' !== typeof value) throw new Error("the value of mapNames must be a string");
-  let result = "";
-  for (let mapKey in map) {
-    result += render(name, Object.assign({}, attrs, {
-      [key]: mapKey,
-      [value]: map[mapKey]
-    }));
-  }
-  return result;
-}
-const templateNames = ['render', 'renderSet', 'renderMap'];
-const templateArgs = [render, renderSet, renderMap];
+const templateNames = ['render'];
+const templateArgs = [render];
 
 module.exports = {
   render,
-  renderSet,
-  renderMap,
   renderRoot
 }

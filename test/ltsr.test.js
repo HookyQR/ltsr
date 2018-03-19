@@ -1,6 +1,7 @@
-const expect = require('chai').expect;
+const expect = require('chai')
+  .expect;
 
-const { render, renderSet, renderMap, renderRoot } = require('../ltsr');
+const { render } = require('../ltsr');
 describe('ltsr', () => {
   it('fails with a path out of root', () =>
     expect(() => render('../../nothing'))
@@ -13,20 +14,29 @@ describe('ltsr', () => {
     .throw(Error, /ENOENT/)
   );
   it('fails when a variable is missing', () =>
-    expect(() => render('test/index', {key: 1}))
+    expect(() => render('test/index', { locals: { key: 1 } }))
     .to
     .throw(ReferenceError, /Render failed/)
   );
   it('succeeds when everything is present', () => {
-    expect(render('test/index', {key: 1, val: 2})).to.eql('12');
+    expect(render('test/index', { locals: { key: 1, val: 2, constant: 3 } }))
+      .to.eql('123');
   });
   it('renders with a set', () => {
-    expect(renderSet('test/index', {key: [1,2,3]}, {val: 2})).to.eql('122232');
+    expect(render('test/index', {
+        locals: { constant: 3 },
+        collection: ['a', 'b', 'c'],
+        keyName: 'key',
+        valueName: 'val'
+      }))
+      .to.eql('0a31b32c3');
   });
   it('renders with a map', () => {
-    expect(renderMap('test/index', {key: 'val'}, {a:1, b:2})).to.eql('a1b2');
+    expect(render('test/index', { locals: { constant: 3 }, collection: { a: 1, b: 2 }, valueName: 'val' }))
+      .to.eql('a13b23');
   });
   it('renders a partial', () => {
-    expect(render('test/outer', {external: {key: 1, val: 2}})).to.eql('z12y');
+    expect(render('test/outer', { locals: { external: { key: 1, val: 2, constant: 3 } } }))
+      .to.eql('z123y');
   })
 });
