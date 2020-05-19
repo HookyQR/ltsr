@@ -1,21 +1,39 @@
-const readFile = require('fs')
-  .readFileSync;
+const readFile = require('fs').readFileSync;
 const path = require('path');
-
 const storedFunctions = new Map();
-
-const loadFile = (file, noTrim, root) => {
-  let base = path.join(root, file);
-  if (path.relative(root, base).startsWith('..'))
-    throw new Error(`Attempt to load template (${file}) which falls outside of root (${root})`);
-  const string = readFile(`${base}.lt`, 'utf8');
-  return noTrim ? string : string.trimEnd();
-};
-
-const makeFunction = (file, args, noTrim, root) => new Function(args, `return \`${loadFile(file, noTrim, root)}\``);
-
-let primeRoot = process.cwd();
+const primeRoot = process.cwd();
 const isString = val => Number.isNaN(parseInt(val));
+
+const REOriginalStack = Symbol('originalStack');
+const RETemplates = Symbol('templates');
+const REBuiltStack = Symbol('builtStack');
+const RERoot = Symbol('root');
+
+class RenderError {
+  constructor(referenceError, template, root) {
+    this[REOriginalStack] = referenceError.stack.replace('ReferenceError: ', '');
+    this.message = this[REOriginalStack].split('\n').shift();
+    this[RERoot] = root;
+    this[RETemplates] = [template];
+  }
+
+  add(template) {
+    this[RETemplates].push(template);
+    this[REBuiltStack] = undefined;
+  }
+
+  stackWithLt() {
+    const target = /eval .*makeFunction.*<anonymous>(.*)\)/;
+    return this[RETemplates].reduce(
+      (stack, name) => stack.replace(target, `Template ${path.join(this[RERoot], name)}.lt$1`),
+      this[REOriginalStack]
+    ).replace(/\n\s*at LTSR.*/g, '');
+  }
+
+  get stack() {
+    return this[REBuiltStack] || (this[REBuiltStack] = this.stackWithLt());
+  }
+}
 
 const mapProperties = (object, target = object) => {
   if (!(object instanceof Object)) return {};
@@ -36,84 +54,97 @@ const mapProperties = (object, target = object) => {
     result);
 };
 
-const innerRender = (name, locals, noTrim, render) => {
-  let argValues = mapProperties(locals);
-  let args = Object.keys(argValues).sort();
-  let values = args.map(a => argValues[a]);
-  let fnName = `${render.root}/${name}(${args})`;
-  args.push('render');
-  values.push(render);
-
-  let fn;
-  if (!storedFunctions.has(fnName)) {
-    fn = makeFunction(name, args, noTrim, render.root);
-    storedFunctions.set(fnName, fn);
-  } else {
-    fn = storedFunctions.get(fnName);
+class LTSR {
+  constructor(root = primeRoot) {
+    this.root = root;
   }
-  try {
-    return fn.apply(null, values);
-  } catch (e) {
-    if (e instanceof ReferenceError) {
-      e.message = `Render failed: ${e.message}`;
-      e.stack = `${e.message}
-    Template: ${name}`;
-    }
-    throw e;
-  }
-};
-
-const renderMap = (name, { locals, collection, keyName, valueName, noTrim }, render) => {
-  const output = [];
-  for (let [key, value] of collection) {
-    output.push(innerRender(name, { ...locals, [keyName]: key, [valueName]: value }, noTrim, render));
-  }
-  return output.join('');
-};
-
-const renderSet = (name, { locals, collection, keyName, valueName, noTrim }, render) => {
-  const output = [];
-  let i = 0;
-  for (let value of collection) {
-    output.push(innerRender(name, { ...locals, [keyName]: i++, [valueName]: value }, noTrim, render));
-  }
-  return output.join('');
-};
-
-const renderObject = (name, { locals, collection, keyName, valueName, noTrim }, render) =>
-  Object.keys(collection).map(key =>
-    innerRender(name, { ...locals, [keyName]: key, [valueName]: collection[key] }, noTrim, render)
-  ).join('');
-
-const renderer = (root = primeRoot) => {
-  const render = (
-    name, {
+  render(
+    name,
+    {
       locals = {},
       collection = null,
       keyName = (collection instanceof Array || collection instanceof Set) ? 'index' : 'key',
       valueName = 'value',
-      noTrim = false,
-    } = {}) => {
-    if (!collection) return innerRender(name, locals, noTrim, render);
+      keepWhitespace = false,
+    } = {}
+  ) {
+    if (!collection) return this.innerRender(name, locals, keepWhitespace);
     if ('string' !== typeof keyName || 'string' !== typeof valueName)
       throw new Error('keyName and valueName must be strings');
 
-    const dataSet = { locals, collection, keyName, valueName, noTrim };
-    if (collection instanceof Array || collection instanceof Set) return renderSet(name, dataSet, render);
-    else if (collection instanceof Map) return renderMap(name, dataSet, render);
-    else if (Object.keys(collection).length) return renderObject(name, dataSet, render);
+    const dataSet = { locals, collection, keyName, valueName, keepWhitespace };
+    if (collection instanceof Array || collection instanceof Set) return this.renderSet(name, dataSet);
+    else if (collection instanceof Map) return this.renderMap(name, dataSet);
+    else if (Object.keys(collection).length) return this.renderObject(name, dataSet);
 
     throw new Error(`Don't know how to render with collection of type ${collection.constructor.name}`);
+  }
+
+  innerRender(name, locals, keepWhitespace) {
+    let argValues = mapProperties(locals);
+    let args = Object.keys(argValues).sort();
+    let values = args.map(a => argValues[a]);
+    let fnName = `${this.root}/${name}(${args})`;
+    args.push('render');
+    const render = this.render.bind(this);
+    render.raw = this.raw.bind(this);
+    values.push(render);
+
+    if (!storedFunctions.has(fnName)) {
+      storedFunctions.set(fnName, this.makeFunction(name, args));
+    }
+    const fn = storedFunctions.get(fnName);
+    try {
+      const result = fn(...values);
+      return keepWhitespace ? result : result.trimEnd();
+    } catch (e) {
+      if (e instanceof ReferenceError) {
+
+        e.message = `Render failed: ${e.message}`;
+        throw new RenderError(e, name, this.root);
+      } else if (e instanceof RenderError) {
+        e.add(name);
+      }
+      throw e;
+    }
   };
 
-  Object.defineProperties(render, {
-    root: { value: root },
-    raw: { value: (name, noTrim) => loadFile(name, noTrim, root) }
-  });
-  return Object.freeze(render);
-};
+  loadFile(file) {
+    let base = path.join(this.root, file);
+    if (path.relative(this.root, base).startsWith('..'))
+      throw new Error(`Attempt to load template (${file}) which falls outside of root (${this.root})`);
+    return readFile(`${base}.lt`, 'utf8');
+  }
 
+  raw(file, keepWhitespace) {
+    const string = this.loadFile(file);
+    return keepWhitespace ? string : string.trimEnd();
+  };
 
-module.exports = {
-  renderer,
-};
+  makeFunction(file, args) { return new Function(args, `return \`${this.loadFile(file)}\``); }
+
+  renderMap(name, { locals, collection, keyName, valueName, keepWhitespace }) {
+    const output = [];
+    for (let [key, value] of collection) {
+      output.push(this.innerRender(name, { ...locals, [keyName]: key, [valueName]: value }, keepWhitespace));
+    }
+    return output.join('');
+  };
+
+  renderSet(name, { locals, collection, keyName, valueName, keepWhitespace }) {
+    const output = [];
+    let i = 0;
+    for (let value of collection) {
+      output.push(this.innerRender(name, { ...locals, [keyName]: i++, [valueName]: value }, keepWhitespace));
+    }
+    return output.join('');
+  };
+
+  renderObject(name, { locals, collection, keyName, valueName, keepWhitespace }) {
+    return Object.keys(collection).map(key =>
+      this.innerRender(name, { ...locals, [keyName]: key, [valueName]: collection[key] }, keepWhitespace)
+    ).join('');
+  }
+}
+
+module.exports = LTSR;

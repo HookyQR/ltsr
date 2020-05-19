@@ -1,3 +1,4 @@
 *** 0.0.5
-- return individual render (via creator) with a base path. (Avoids load/call order issues)
+- now exports a class which separates `root` changes from template calls
 - auto trim files by default (tail only)
+- add template locations to
