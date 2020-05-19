@@ -169,5 +169,11 @@ describe('LTSR', () => {
 
       it('does not try to interpolate at depth', () => expect(render).to.eq('z${key}${val}${constant}y'));
     });
+
+    context('rendering without `.lt`', () => {
+      set('path', 'plain.txt');
+
+      it('succeeds', () => expect(() => render).not.to.throw());
+    });
   });
 });

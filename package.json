@@ -1,6 +1,6 @@
 {
   "name": "ltsr",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Literal Template String Render - Use JS literal templates strings for file templates",
   "main": "ltsr.js",
   "scripts": {
@@ -20,6 +20,10 @@
     "render",
     "html",
     "partial"
+  ],
+  "files": [
+    "ltsr.js",
+    "lt.json"
   ],
   "author": "Hooky <hooky@qrmaster.co.nz> (https://github.com/HookyQR)",
   "license": "MIT",

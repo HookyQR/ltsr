@@ -109,15 +109,20 @@ class LTSR {
     }
   };
 
-  loadFile(file) {
+  loadFile(file, allowNoLt) {
     let base = path.join(this.root, file);
     if (path.relative(this.root, base).startsWith('..'))
       throw new Error(`Attempt to load template (${file}) which falls outside of root (${this.root})`);
-    return readFile(`${base}.lt`, 'utf8');
+    try {
+      return readFile(`${base}.lt`, 'utf8');
+    } catch (e) {
+      if (allowNoLt && file.includes('.')) return readFile(base, 'utf8');
+      throw e;
+    }
   }
 
   raw(file, keepWhitespace) {
-    const string = this.loadFile(file);
+    const string = this.loadFile(file, true);
     return keepWhitespace ? string : string.trimEnd();
   };
 
