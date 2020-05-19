@@ -1,6 +1,6 @@
 {
   "name": "ltsr",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Literal Template String Render - Use JS literal templates strings for file templates",
   "main": "ltsr.js",
   "scripts": {
