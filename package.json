@@ -1,14 +1,15 @@
 {
   "name": "ltsr",
-  "version": "0.0.4",
-  "description": "Literal Template String Render - Use JS literal templates strings for file tempates",
+  "version": "0.0.5",
+  "description": "Literal Template String Render - Use JS literal templates strings for file templates",
   "main": "ltsr.js",
   "scripts": {
-    "test": "mocha"
+    "test": "jsspec"
   },
   "devDependencies": {
-    "mocha": "*",
-    "chai": "*"
+    "@jsspec/jsspec": "*",
+    "chai": "*",
+    "c8": "^7.1.2"
   },
   "repository": "HookyQR/ltsr",
   "keywords": [

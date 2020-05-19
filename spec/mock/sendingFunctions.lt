@@ -1,0 +1,1 @@
+A${render('receivingFunctions', { locals: { method }})}Z

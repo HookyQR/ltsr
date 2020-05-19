@@ -4,18 +4,17 @@ const path = require('path');
 
 const storedFunctions = new Map();
 
-const loadFile = file => {
+const loadFile = (file, noTrim, root) => {
   let base = path.join(root, file);
   if (path.relative(root, base).startsWith('..'))
     throw new Error(`Attempt to load template (${file}) which falls outside of root (${root})`);
+  const string = readFile(`${base}.lt`, 'utf8');
+  return noTrim ? string : string.trimEnd();
+};
 
-  return readFile(`${base}.lt`, 'utf8');
-}
+const makeFunction = (file, args, noTrim, root) => new Function(args, `return \`${loadFile(file, noTrim, root)}\``);
 
-const makeFunction = (file, args) => new Function(args, `return \`${loadFile(file)}\``);
-
-let root = process.cwd();
-const renderRoot = dir => root = dir;
+let primeRoot = process.cwd();
 const isString = val => Number.isNaN(parseInt(val));
 
 const mapProperties = (object, target = object) => {
@@ -35,19 +34,19 @@ const mapProperties = (object, target = object) => {
   return Object.assign(
     mapProperties(Object.getPrototypeOf(object), target),
     result);
-}
+};
 
-const innerRender = (name, locals) => {
+const innerRender = (name, locals, noTrim, render) => {
   let argValues = mapProperties(locals);
   let args = Object.keys(argValues).sort();
   let values = args.map(a => argValues[a]);
-  let fnName = `${name}(${args})`;
+  let fnName = `${render.root}/${name}(${args})`;
   args.push('render');
   values.push(render);
 
   let fn;
   if (!storedFunctions.has(fnName)) {
-    fn = makeFunction(name, args);
+    fn = makeFunction(name, args, noTrim, render.root);
     storedFunctions.set(fnName, fn);
   } else {
     fn = storedFunctions.get(fnName);
@@ -62,69 +61,59 @@ const innerRender = (name, locals) => {
     }
     throw e;
   }
-}
-
-const innerRenderCollectionPart =
-  (name, locals, collected) => innerRender(name, Object.assign({}, locals, collected));
-
-
-const renderMap = (name, { locals, collection, keyName, valueName }) => {
-  const output = []
-  for (let [key, value] of collection) {
-    output.push(
-      innerRenderCollectionPart(name, locals, {
-        [keyName]: key,
-        [valueName]: value
-      }));
-  }
-  return output.join('');
-}
-
-const renderSet = (name, { locals, collection, keyName, valueName }) => {
-  const output = []
-  let i = 0;
-  for (let value of collection) {
-    output.push(
-      innerRenderCollectionPart(name, locals, {
-        [keyName]: i++,
-        [valueName]: value
-      }));
-  }
-  return output.join('');
-}
-
-const renderObject = (name, { locals, collection, keyName, valueName }) =>
-  Object.keys(collection).map(key =>
-    innerRenderCollectionPart(name, locals, {
-      [keyName]: key,
-      [valueName]: collection[key]
-    }))
-  .join('');
-
-const render = (
-  name, {
-    locals = {},
-    collection = null,
-    keyName = (collection instanceof Array || collection instanceof Set) ? 'index' : 'key',
-    valueName = 'value'
-  } = {}) => {
-  if (!collection) return innerRender(name, locals);
-  if ('string' !== typeof keyName || 'string' !== typeof valueName)
-    throw new Error('keyName and valueName must be strings');
-
-  const dataSet = { locals, collection, keyName, valueName };
-  if (collection instanceof Array || collection instanceof Set) return renderSet(name, dataSet);
-  else if (collection instanceof Map) return renderMap(name, dataSet);
-  else if (Object.keys(collection).length) return renderObject(name, dataSet);
-
-  throw new Error(`Don't know how to render with collection of type ${collection.constructor.name}`);
 };
 
-Object.defineProperty(render, 'raw', {
-  value: name => loadFile(name)
-});
+const renderMap = (name, { locals, collection, keyName, valueName, noTrim }, render) => {
+  const output = [];
+  for (let [key, value] of collection) {
+    output.push(innerRender(name, { ...locals, [keyName]: key, [valueName]: value }, noTrim, render));
+  }
+  return output.join('');
+};
+
+const renderSet = (name, { locals, collection, keyName, valueName, noTrim }, render) => {
+  const output = [];
+  let i = 0;
+  for (let value of collection) {
+    output.push(innerRender(name, { ...locals, [keyName]: i++, [valueName]: value }, noTrim, render));
+  }
+  return output.join('');
+};
+
+const renderObject = (name, { locals, collection, keyName, valueName, noTrim }, render) =>
+  Object.keys(collection).map(key =>
+    innerRender(name, { ...locals, [keyName]: key, [valueName]: collection[key] }, noTrim, render)
+  ).join('');
+
+const renderer = (root = primeRoot) => {
+  const render = (
+    name, {
+      locals = {},
+      collection = null,
+      keyName = (collection instanceof Array || collection instanceof Set) ? 'index' : 'key',
+      valueName = 'value',
+      noTrim = false,
+    } = {}) => {
+    if (!collection) return innerRender(name, locals, noTrim, render);
+    if ('string' !== typeof keyName || 'string' !== typeof valueName)
+      throw new Error('keyName and valueName must be strings');
+
+    const dataSet = { locals, collection, keyName, valueName, noTrim };
+    if (collection instanceof Array || collection instanceof Set) return renderSet(name, dataSet, render);
+    else if (collection instanceof Map) return renderMap(name, dataSet, render);
+    else if (Object.keys(collection).length) return renderObject(name, dataSet, render);
+
+    throw new Error(`Don't know how to render with collection of type ${collection.constructor.name}`);
+  };
+
+  Object.defineProperties(render, {
+    root: { value: root },
+    raw: { value: (name, noTrim) => loadFile(name, noTrim, root) }
+  });
+  return Object.freeze(render);
+};
+
 
 module.exports = {
-  render,
-  renderRoot
-}
+  renderer,
+};
