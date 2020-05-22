@@ -1,41 +1,10 @@
 const readFile = require('fs').readFileSync;
-const path = require('path');
+const { join: joinPath, relative: relativePath } = require('path');
 const storedFunctions = new Map();
 const primeRoot = process.cwd();
 const isString = val => Number.isNaN(parseInt(val));
 
-const REOriginalError = Symbol('originalError');
-const RETemplates = Symbol('templates');
-const REBuiltStack = Symbol('builtStack');
-const RERoot = Symbol('root');
-
-class RenderError {
-  constructor(referenceError, template, root) {
-    this[REOriginalError] = referenceError;
-    this[RERoot] = root;
-    this[RETemplates] = [template];
-  }
-
-  add(template) {
-    this[RETemplates].push(template);
-    this[REBuiltStack] = undefined;
-  }
-
-  stackWithLt() {
-    const target = /eval .*makeFunction.*<anonymous>(.*)\)/;
-    return this[RETemplates].reduce(
-      (stack, name) => stack.replace(target, `Template ${path.join(this[RERoot], name)}.lt$1`),
-      this[REOriginalError].stack
-    ).replace(/\n\s*at LTSR.*/g, '').replace('ReferenceError: ', '');
-  }
-
-  get stack() {
-    return this[REBuiltStack] || (this[REBuiltStack] = this.stackWithLt());
-  }
-  get message() {
-    return this.stack.split('\n').shift();
-  }
-}
+const RenderError = require('./render_error');
 
 const mapProperties = (object, target = object) => {
   if (!(object instanceof Object)) return {};
@@ -112,8 +81,8 @@ class LTSR {
   };
 
   loadFile(file, allowNoLt) {
-    let base = path.join(this.root, file);
-    if (path.relative(this.root, base).startsWith('..'))
+    let base = joinPath(this.root, file);
+    if (relativePath(this.root, base).startsWith('..'))
       throw new Error(`Attempt to load template (${file}) which falls outside of root (${this.root})`);
     try {
       return readFile(`${base}.lt`, 'utf8');

@@ -8,6 +8,7 @@
   },
   "devDependencies": {
     "@jsspec/jsspec": "*",
+    "@types/node": "^14.0.5",
     "chai": "*",
     "c8": "^7.1.2",
     "eslint-plugin-jsspec": "0.0.9"
@@ -23,7 +24,8 @@
   ],
   "files": [
     "ltsr.js",
-    "lt.json"
+    "lt.json",
+    "render_error.js"
   ],
   "author": "Hooky <hooky@qrmaster.co.nz> (https://github.com/HookyQR)",
   "license": "MIT",
