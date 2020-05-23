@@ -1,14 +1,10 @@
-const { join: joinPath } = require('path');
-
 const REOriginalError = Symbol('originalError');
 const RETemplates = Symbol('templates');
 const REBuiltStack = Symbol('builtStack');
-const RERoot = Symbol('root');
 
 class RenderError {
-  constructor(referenceError, template, root) {
+  constructor(referenceError, template) {
     this[REOriginalError] = referenceError;
-    this[RERoot] = root;
     this[RETemplates] = [template];
   }
 
@@ -19,17 +15,19 @@ class RenderError {
 
   stackWithLt() {
     const target = /eval .*makeFunction.*<anonymous>(.*)\)/;
-    return this[RETemplates].reduce(
-      (stack, name) => stack.replace(target, `Template ${joinPath(this[RERoot], name)}.lt$1`),
+    const renamed = this[RETemplates].reduce(
+      (stack, name) => stack.replace(target, `Template ${name}$1`),
       this[REOriginalError].stack
-    ).replace(/\n\s*at LTSR.*/g, '').replace('ReferenceError: ', '');
+    ).replace('ReferenceError: ', '');
+    if (process.env.DEBUG) return renamed;
+    return renamed.replace(/\n\s*at LTSR.*/g, '');
   }
 
   get stack() {
     return this[REBuiltStack] || (this[REBuiltStack] = this.stackWithLt());
   }
   get message() {
-    return this.stack.split('\n').shift();
+    return `Render failed: ${this.stack.split('\n').shift()}`;
   }
 }
 

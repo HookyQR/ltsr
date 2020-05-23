@@ -4,17 +4,19 @@
 
 Use Javascript Literal Template String syntax for file templates.
 
-`lstr = new LTSR(folder)` : set the root directory for template loading
+`ltsr = new LTSR({root: , layout: })` : create a renderer at a specific root, optionally with a default layout.
 
-`ltsr.render(file, { locals:, collection:, keyName:, valueName:, keepWhitespace})`
+`ltsr.render(file, { locals:, collection:, sep:, keyName:, valueName:, keepWhitespace, layout:})`
 
 `render` second argument defaults:
   * `locals = {}`
   * `collection = null`
+  * `sep = ''`: String to place between collection elements
   * `keyName = 'index'`: When collection is a `Set` or an `Array`.
   * `keyName = 'key'`: Otherwise.
   * `valueName = 'value'`
   * `keepWhitespace = false`: set to true to keep trailing whitespace from the template file
+  * `layout = undefined`: see **Layout** section below
 
 `ltsr.raw(file, keepWhitespace = false)` may be used to render the template without interpolation, useful for including javascript files which have string templates in them.
 
@@ -39,7 +41,6 @@ The following are also equivalent, using the default value and key names for arr
 
 ltsr.render('template', { collection: ['a', 'b', 'c'] }));
 ```
-
 
 ### Iterative render, with a Map or an Object:
 With `collection: (Map or Object)` : as above, but the key is passed where the index would have been above.
@@ -87,3 +88,50 @@ The render and render.raw methods are available to templates, enabling partial r
   </body>
 </html>
 ```
+
+### Layouts
+Providing a layout template to `render` will wrap the target rendered file in the layout at the point of a `yield`.
+
+#### With `layout.lt`
+```html
+<html>
+  <head><title>${yield 'title'}</title></head>
+  <body>${yield}</body>
+</html>
+```
+
+#### And `content.lt`
+```html
+This is the body
+```
+
+#### Calling with `render('content', {layout: 'layout', locals: {title: 'This is the title'}})`:
+```html
+<html>
+  <head><title>This is the title</title></head>
+  <body>This is the body</body>
+</html>
+```
+
+Unlike rendering a partial, if a value yielded for (such as `yield 'title'` in this case) is not provided, LTSR will not raise an error.
+No arguments are passed to the layout, but can be provided in the `locals` field of the render options. Note that they must be `yield`ed for.
+
+If render is called with a layout while rendering a collection, each item is wrapped in the layout.
+
+### Using `sep`
+
+When rendering a collection, you can provided an element separator string to place between items.
+
+#### With `partial.lt`
+```html
+<div>${name}</div>
+```
+
+#### Calling with `render('partial', { collection: ['me', 'you', 'her', 'him'], valueName: 'name', sep: '<hr/>\n'})`:
+```html
+<div>me</div><hr/>
+<div>you</div><hr/>
+<div>her</div><hr/>
+<div>him</div>
+```
+
