@@ -20,7 +20,7 @@ describe('LTSR', () => {
     });
 
     context('with a missing template', () => {
-      set('path', 'nothing');
+      set('path', 'notATemplate');
 
       it('fails', () => expect(() => render).to.throw(Error, /No template/));
     });

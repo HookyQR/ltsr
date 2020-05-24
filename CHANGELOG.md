@@ -1,3 +1,6 @@
+*** 0.0.9
+- Send `render` to layout
+
 *** 0.0.8
 - Don't cache if DEBUG env var is set
 - Add default `layout`

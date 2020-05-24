@@ -91,6 +91,7 @@ The render and render.raw methods are available to templates, enabling partial r
 
 ### Layouts
 Providing a layout template to `render` will wrap the target rendered file in the layout at the point of a `yield`.
+`render` and `raw` may be called within the layout file, but note that none of the values sent to the template which invoked the layout are provided. (you may get them using the `yield 'name'` technique shown below).
 
 #### With `layout.lt`
 ```html
@@ -135,3 +136,9 @@ When rendering a collection, you can provided an element separator string to pla
 <div>him</div>
 ```
 
+### File search
+Calling `ltsr.render` and `ltsr.raw` will only load the provided file from the provided `root`.
+
+Calling `render` or `render.raw` from within a template will attempt to load the file first from `{root}/partial/{template}.lt`, then `{root}/{template}.lt`. Calling raw will also attempt to load (in the same order) files without the `.lt` extension after trying with.
+
+Using the `layout` option will attempt to load first from `{root}/layout/{template}.lt` then `{root}/{template}.lt`. Note that calling `render` or `render.raw` from within a `layout` will use the same paths described above, even if the layout was found in the `layout/` sub-directory.

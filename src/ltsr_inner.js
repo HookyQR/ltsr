@@ -55,7 +55,7 @@ class LTSRInner {
   layoutWrap(data, locals, keepWhitespace) {
     if (!this.layout) return data;
 
-    const layoutGenerator = this.makeLayout(this.layout.get())();
+    const layoutGenerator = this.makeLayout(this.layout.get())(this.subRender);
 
     let state = layoutGenerator.next();
 
@@ -93,7 +93,7 @@ class LTSRInner {
 
   makeLayout(layout) {
     if (process.env.DEBUG || !storedLayouts.has(layout)) {
-      storedLayouts.set(layout, new GeneratorFunction(`return \`${loadFile(layout)}\``));
+      storedLayouts.set(layout, new GeneratorFunction('render', `return \`${loadFile(layout)}\``));
     }
     return storedLayouts.get(layout);
   }
