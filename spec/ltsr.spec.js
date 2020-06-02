@@ -1,6 +1,3 @@
-const expect = require('chai')
-  .expect;
-
 const LTSR = require('../src/ltsr');
 const { join: joinPath } = require('path');
 
@@ -119,7 +116,7 @@ describe('LTSR', () => {
 
       context('when a variable is missing', () => {
         set('baseArgs', { locals: { key: 1 } });
-        it('fails', () => expect(() => render).to.throw(/Render failed/));
+        it('fails', () => expect(() => render).to.throw(/val is not defined/));
       });
 
       context('with required args present', () => {

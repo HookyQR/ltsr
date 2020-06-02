@@ -1,0 +1,1 @@
+${render.raw('plain.txt')}${render('inner')}${variable}

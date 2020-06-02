@@ -11,7 +11,8 @@
       "cwd": "${workspaceRoot}",
       "program": "${workspaceRoot}/node_modules/.bin/jsspec",
       "args": [
-        "spec/ltsr.spec.js:139"
+        "-r",
+        "spec/spec_helper.js"
       ],
       "stopOnEntry": false,
     }

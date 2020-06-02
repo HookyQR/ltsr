@@ -1,7 +1,7 @@
 const { existsSync: exists } = require('fs');
 const { join: joinPath, relative: relativePath } = require('path');
 
-class Filename {
+class LTSRFilename {
   constructor(root, name, kind) {
     this.root = root;
     this.name = name;
@@ -25,4 +25,4 @@ class Filename {
   }
 }
 
-module.exports = Filename;
+module.exports = LTSRFilename;

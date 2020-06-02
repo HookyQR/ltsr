@@ -6,7 +6,6 @@ const storedLayouts = new Map();
 
 const isString = val => Number.isNaN(parseInt(val));
 
-const RenderError = require('./render_error');
 const GeneratorFunction = Object.getPrototypeOf(function* () { }).constructor;
 
 const mapProperties = (object, target = object) => {
@@ -46,17 +45,17 @@ class LTSRInner {
   renderCollection(dataSet) {
     const { collection } = this.dataSet = dataSet;
     if (collection instanceof Array || collection instanceof Set) return this.renderSet();
-    else if (collection instanceof Map) return this.renderMap();
-    else if (Object.keys(collection).length) return this.renderObject();
+    if (collection instanceof Map) return this.renderMap();
+    if (collection instanceof Object) return this.renderObject();
 
     throw new Error(`Don't know how to render with collection of type ${collection.constructor.name}`);
   }
 
-  layoutWrap(data, locals, keepWhitespace) {
+  layoutWrap(data, locals, keepWhitespace, originalFile) {
     if (!this.layout) return data;
 
-    const layoutGenerator = this.makeLayout(this.layout.get())(this.subRender);
-
+    const path = this.layout.get();
+    const layoutGenerator = this.makeLayout(path, originalFile)(this.subRender);
     let state = layoutGenerator.next();
 
     while (!state.done) {
@@ -68,22 +67,15 @@ class LTSRInner {
   }
 
   render(locals, keepWhitespace) {
-    let argValues = mapProperties(locals);
-    let args = Object.keys(argValues).sort();
-    let values = args.map(a => argValues[a]);
+    const argValues = mapProperties(locals);
+    const args = Object.keys(argValues).sort();
+    const values = args.map(a => argValues[a]);
 
     args.push('render', 'exports');
     values.push(this.subRender, this.exports);
-    let func;
-    try {
-      func = this.makeFunction(args);
-      const result = func.method(...values);
-      return this.layoutWrap(keepWhitespace ? result : result.trimEnd(), locals, keepWhitespace);
-    } catch (e) {
-      if (e instanceof ReferenceError) { throw new RenderError(e, func.path); }
-      if (e instanceof RenderError) { e.add(func.path); }
-      throw e;
-    }
+    const func = this.makeFunction(args);
+    const result = func.method(...values);
+    return this.layoutWrap(keepWhitespace ? result : result.trimEnd(), locals, keepWhitespace, func.path);
   };
 
   raw(keepWhitespace) {
@@ -91,7 +83,8 @@ class LTSRInner {
     return keepWhitespace ? file : file.trimEnd();
   };
 
-  makeLayout(layout) {
+  makeLayout(layout, targetFile) {
+    this.owner.error.add('layout', layout);
     if (process.env.DEBUG || !storedLayouts.has(layout)) {
       storedLayouts.set(layout, new GeneratorFunction('render', `return \`${loadFile(layout)}\``));
     }
@@ -100,6 +93,7 @@ class LTSRInner {
 
   makeFunction(args) {
     const path = this.filename.get();
+    this.owner.error.add('template', path);
     const fnName = `${path}(${args})`;
     if (process.env.DEBUG || !storedFunctions.has(fnName)) {
       storedFunctions.set(fnName, new Function(args, `return \`${loadFile(path)}\``));
